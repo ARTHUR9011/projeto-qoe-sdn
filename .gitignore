@@ -1,29 +1,23 @@
-# Ambiente virtual Python
 venv/
 .venv/
 
-# Cache Python
 __pycache__/
 *.pyc
 *.pyo
 
-# Arquivos temporários
 *.log
 *.tmp
 
-# Sistema
-.DS_Store
-Thumbs.db
-
-# Overleaf/LaTeX temporários
 *.aux
-*.log
 *.out
 *.toc
 *.synctex.gz
-*.fdb_latexmk
 *.fls
+*.fdb_latexmk
 
-# Mininet/Open vSwitch temporários
+.DS_Store
+Thumbs.db
+.vscode/
+
 *.pid
 *.pcap

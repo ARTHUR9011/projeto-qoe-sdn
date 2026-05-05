@@ -1,0 +1,252 @@
+\documentclass[12pt,a4paper]{article}
+
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage[brazil]{babel}
+\usepackage{geometry}
+\usepackage{booktabs}
+\usepackage{array}
+\usepackage{float}
+\usepackage{graphicx}
+\usepackage{hyperref}
+\usepackage{tikz}
+
+\geometry{margin=2.5cm}
+\hypersetup{
+    colorlinks=true,
+    linkcolor=black,
+    urlcolor=blue
+}
+
+\newcommand{\optionalfigure}[2]{%
+\begin{figure}[H]
+    \centering
+    \IfFileExists{figuras/#1}{%
+        \includegraphics[width=0.92\textwidth]{figuras/#1}%
+    }{%
+        \IfFileExists{relatorio/figuras/#1}{%
+            \includegraphics[width=0.92\textwidth]{relatorio/figuras/#1}%
+        }{%
+            \fbox{\parbox{0.86\textwidth}{Imagem opcional: #2.}}%
+        }%
+    }%
+    \caption{#2}
+\end{figure}
+}
+
+\title{\textbf{Projeto QoE SDN -- Etapa 1}\\
+\large Melhoria da QoE em Streaming de Vídeo com Mininet, SDN e P4}
+\author{Disciplina de Programabilidade de Redes\\
+Repositório: \texttt{ARTHUR9011/projeto-qoe-sdn}}
+\date{Maio de 2026}
+
+\begin{document}
+
+\maketitle
+\thispagestyle{empty}
+\newpage
+
+\tableofcontents
+\newpage
+
+\section{Introdução}
+
+Este relatório descreve a Etapa 1 do projeto ``Melhoria da QoE em Streaming de Vídeo com Mininet, SDN e P4''. O foco desta entrega é montar um ambiente experimental funcional para streaming DASH em uma rede SDN emulada, com controlador OpenFlow, topologia Mininet e medições iniciais de conectividade e vazão.
+
+\section{Objetivo da Etapa 1}
+
+O objetivo da Etapa 1 é construir uma base reproduzível para experimentos futuros de QoE. A etapa inclui a configuração de uma topologia com um servidor de vídeo, três clientes, um switch OpenFlow 1.3 e um controlador SDN remoto. Também inclui a validação do acesso HTTP ao manifesto DASH e a coleta de métricas de rede com \texttt{ping} e \texttt{iperf3}.
+
+\section{Fundamentação aplicada}
+
+SDN separa o plano de controle do plano de dados. O controlador SDN executa a lógica de decisão e programa o comportamento dos switches, enquanto os switches encaminham pacotes conforme as regras instaladas.
+
+O OpenFlow é usado como protocolo entre controlador e switch. Ele permite instalar regras em tabelas de fluxo, associando condições de casamento a ações de encaminhamento.
+
+O Mininet permite emular hosts, switches, enlaces e controladores em Linux, usando namespaces de rede e Open vSwitch. Isso torna possível reproduzir uma rede SDN completa em uma única máquina.
+
+P4 está relacionado à programabilidade do plano de dados e pode ser considerado em etapas futuras. Nesta Etapa 1, P4 é apenas citado como extensão possível e não foi implementado.
+
+\section{Ambiente experimental}
+
+A topologia implementada contém:
+
+\begin{itemize}
+    \item \texttt{h1}: servidor DASH, IP \texttt{10.0.0.1/24};
+    \item \texttt{h2}: cliente 1, IP \texttt{10.0.0.2/24};
+    \item \texttt{h3}: cliente 2, IP \texttt{10.0.0.3/24};
+    \item \texttt{h4}: cliente 3, IP \texttt{10.0.0.4/24};
+    \item \texttt{s1}: switch OpenFlow 1.3;
+    \item \texttt{c0}: controlador SDN remoto em \texttt{127.0.0.1:6633}.
+\end{itemize}
+
+Todos os enlaces usam \texttt{TCLink} com banda inicial de 100 Mbps. Não foram configurados atraso, perda, jitter ou degradação artificial nesta etapa.
+
+\section{Ferramentas utilizadas}
+
+\begin{itemize}
+    \item Linux;
+    \item Mininet;
+    \item Open vSwitch;
+    \item Python 3;
+    \item OS-Ken, com compatibilidade de código para Ryu;
+    \item \texttt{iperf3};
+    \item \texttt{curl};
+    \item \texttt{ffmpeg}, caso seja necessário regenerar os segmentos DASH.
+\end{itemize}
+
+O VLC é uma opção complementar para validação visual, mas a validação registrada nesta entrega foi feita com \texttt{curl -I} no arquivo \texttt{manifest.mpd}.
+
+\section{Topologia implementada}
+
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}[
+    host/.style={draw, rounded corners, minimum width=2.2cm, minimum height=0.9cm},
+    switch/.style={draw, rectangle, minimum width=2.2cm, minimum height=0.9cm},
+    controller/.style={draw, dashed, rounded corners, minimum width=3.2cm, minimum height=0.9cm}
+]
+    \node[host] (h1) at (-4,0) {\texttt{h1}\\10.0.0.1};
+    \node[switch] (s1) at (0,0) {\texttt{s1}\\OpenFlow 1.3};
+    \node[host] (h2) at (0,2.4) {\texttt{h2}\\10.0.0.2};
+    \node[host] (h3) at (4,0) {\texttt{h3}\\10.0.0.3};
+    \node[host] (h4) at (0,-2.4) {\texttt{h4}\\10.0.0.4};
+    \node[controller] (c0) at (0,4.2) {\texttt{c0}\\127.0.0.1:6633};
+
+    \draw (h1) -- node[above]{100 Mbps} (s1);
+    \draw (s1) -- node[right]{100 Mbps} (h2);
+    \draw (s1) -- node[above]{100 Mbps} (h3);
+    \draw (s1) -- node[right]{100 Mbps} (h4);
+    \draw[dashed] (c0) -- node[right]{OpenFlow} (s1);
+\end{tikzpicture}
+\caption{Topologia da Etapa 1.}
+\end{figure}
+
+\section{Controlador SDN}
+
+O controlador está em \texttt{controlador/simple\_switch\_13.py}. Ele implementa um switch L2 simples com aprendizado de MAC em OpenFlow 1.3:
+
+\begin{itemize}
+    \item aprende o MAC de origem de cada pacote recebido;
+    \item encaminha para a porta conhecida quando o MAC de destino já foi aprendido;
+    \item usa \texttt{FLOOD} quando o destino ainda é desconhecido;
+    \item instala regras de fluxo para destinos conhecidos.
+\end{itemize}
+
+O comando principal de execução é:
+
+\begin{verbatim}
+osken-manager --ofp-tcp-listen-port 6633 controlador/simple_switch_13.py
+\end{verbatim}
+
+\section{Streaming DASH}
+
+O vídeo de teste e os segmentos DASH ficam em \texttt{video/}. O manifesto está em \texttt{video/dash/manifest.mpd}, com segmentos \texttt{.m4s}. O servidor HTTP usado na Etapa 1 é o servidor embutido do Python 3, executado no host \texttt{h1}:
+
+\begin{verbatim}
+h1 bash -c "cd video/dash && python3 -m http.server 8000 --bind 10.0.0.1" &
+\end{verbatim}
+
+O acesso dos clientes é validado por:
+
+\begin{verbatim}
+h2 curl -I http://10.0.0.1:8000/manifest.mpd
+h3 curl -I http://10.0.0.1:8000/manifest.mpd
+h4 curl -I http://10.0.0.1:8000/manifest.mpd
+\end{verbatim}
+
+\section{Metodologia de validação}
+
+A validação da Etapa 1 considera:
+
+\begin{itemize}
+    \item conectividade geral com \texttt{pingall};
+    \item latência e perda com \texttt{ping} entre servidor e cliente;
+    \item vazão com \texttt{iperf3};
+    \item disponibilidade do streaming DASH com \texttt{curl -I} no manifesto.
+\end{itemize}
+
+O script \texttt{scripts/run\_baseline.sh} automatiza a coleta enquanto controlador e topologia estão ativos. Ele salva os arquivos de saída em \texttt{resultados/}.
+
+\section{Resultados iniciais}
+
+Os resultados registrados na pasta \texttt{resultados/} indicam funcionamento estável no cenário base:
+
+\begin{table}[H]
+\centering
+\begin{tabular}{p{3cm} p{7.4cm} p{3.2cm}}
+\toprule
+Teste & Resultado observado & Arquivo \\
+\midrule
+\texttt{h1 -> h2} ping & 10 enviados, 10 recebidos, 0\% perda, RTT médio 0,123 ms & \texttt{ping\_h1\_h2.txt} \\
+\texttt{h2 -> h1} ping & 10 enviados, 10 recebidos, 0\% perda, RTT médio 0,078 ms & \texttt{ping\_h2\_h1.txt} \\
+\texttt{h2 -> h1} iperf3 & receiver aproximadamente 70,3 Mbits/sec & \texttt{iperf\_h2\_h1.txt} \\
+\texttt{h3 -> h1} iperf3 & receiver aproximadamente 72,9 Mbits/sec & \texttt{iperf\_h3\_h1.txt} \\
+\texttt{h4 -> h1} iperf3 & receiver aproximadamente 68,9 Mbits/sec & \texttt{iperf\_h4\_h1.txt} \\
+DASH via \texttt{h2}, \texttt{h3}, \texttt{h4} & HTTP 200 OK, \texttt{application/dash+xml}, 2201 bytes & \texttt{dash\_h*\_header.txt} \\
+\bottomrule
+\end{tabular}
+\caption{Medições iniciais sem degradação artificial.}
+\end{table}
+
+\section{Evidências dos testes}
+
+As evidências textuais estão na pasta \texttt{resultados/}. A validação DASH foi feita com \texttt{curl -I} no manifesto e não há evidência registrada de uso do VLC nesta etapa.
+
+\optionalfigure{estrutura_repositorio.png}{Print da estrutura do repositório}
+\optionalfigure{controlador_rodando.png}{Print do controlador rodando}
+\optionalfigure{topologia_nodes_net_dump.png}{Print da topologia Mininet com \texttt{nodes}, \texttt{net} e \texttt{dump}}
+\optionalfigure{pingall.png}{Print do \texttt{pingall}}
+\optionalfigure{dash_curl.png}{Print do acesso DASH com \texttt{h2}, \texttt{h3} e \texttt{h4}}
+\optionalfigure{iperf3.png}{Print do \texttt{iperf3} ou dos arquivos de resultado}
+
+\section{Organização do repositório}
+
+\begin{itemize}
+    \item \texttt{controlador/}: controlador SDN da Etapa 1;
+    \item \texttt{topologia/}: topologia Mininet;
+    \item \texttt{scripts/}: scripts de execução, baseline e limpeza;
+    \item \texttt{video/}: vídeo de teste e arquivos DASH;
+    \item \texttt{resultados/}: saídas de ping, iperf3 e validação HTTP;
+    \item \texttt{relatorio/}: relatório LaTeX.
+\end{itemize}
+
+\section{Instruções de reprodução}
+
+\begin{enumerate}
+    \item Instalar dependências: Mininet, Open vSwitch, Python 3, OS-Ken, \texttt{iperf3} e \texttt{curl}.
+    \item Executar \texttt{make permissions}.
+    \item Em um terminal, executar \texttt{make controller}.
+    \item Em outro terminal, executar \texttt{make topology}.
+    \item No CLI do Mininet, iniciar o servidor DASH com \texttt{h1 bash scripts/start\_dash\_server.sh \&}.
+    \item Validar conectividade com \texttt{pingall}.
+    \item Validar o DASH com \texttt{curl -I} a partir de \texttt{h2}, \texttt{h3} e \texttt{h4}.
+    \item Validar vazão com \texttt{iperf3}.
+    \item Opcionalmente, executar \texttt{make baseline} em um terceiro terminal para salvar os resultados automaticamente.
+\end{enumerate}
+
+\section{Verificação dos requisitos}
+
+\begin{table}[H]
+\centering
+\begin{tabular}{p{4.2cm} p{7cm} p{2.4cm}}
+\toprule
+Requisito & Implementação no projeto & Situação \\
+\midrule
+Mininet em Linux & Topologia em \texttt{topologia/topologia\_qoe.py} com hosts, switch e enlaces \texttt{TCLink}. & Atendido \\
+Controlador SDN & Controlador L2 em \texttt{controlador/simple\_switch\_13.py}, usando OpenFlow 1.3. & Atendido \\
+Topologia com 1 servidor, 3 clientes e 1 switch OpenFlow & \texttt{h1} como servidor, \texttt{h2-h4} como clientes e \texttt{s1} como switch. & Atendido \\
+Streaming DASH & Servidor Python no \texttt{h1} servindo \texttt{video/dash/manifest.mpd}. & Atendido \\
+Métricas com ping e iperf3 & Arquivos em \texttt{resultados/} e automação em \texttt{scripts/run\_baseline.sh}. & Atendido \\
+Automação com scripts/Makefile & Alvos \texttt{controller}, \texttt{topology}, \texttt{permissions}, \texttt{clean} e \texttt{baseline}. & Atendido \\
+Relatório com diagrama e instruções & Este relatório inclui diagrama TikZ, metodologia e reprodução. & Atendido \\
+\bottomrule
+\end{tabular}
+\caption{Checklist dos requisitos da Etapa 1.}
+\end{table}
+
+\section{Conclusão}
+
+A Etapa 1 entrega uma base funcional para experimentos de streaming DASH sobre SDN em Mininet. O projeto inclui controlador SDN com OpenFlow 1.3, topologia reproduzível, servidor DASH, medições iniciais e automação por scripts e Makefile. As próximas etapas podem introduzir degradação controlada, tráfego concorrente, análise de QoE e, futuramente, programabilidade do plano de dados com P4.
+
+\end{document}
