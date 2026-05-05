@@ -128,11 +128,12 @@ No cenário base espera-se:
 
 Os resultados abaixo vêm dos arquivos já presentes em `resultados/`:
 
-- `h1 -> h2`: 10 pacotes enviados, 10 recebidos, 0% perda, RTT médio 0,123 ms.
-- `h2 -> h1`: 10 pacotes enviados, 10 recebidos, 0% perda, RTT médio 0,078 ms.
-- `h2 -> h1` com `iperf3`: receiver aproximadamente 70,3 Mbits/sec.
-- `h3 -> h1` com `iperf3`: receiver aproximadamente 72,9 Mbits/sec.
-- `h4 -> h1` com `iperf3`: receiver aproximadamente 68,9 Mbits/sec.
+- `pingall`: 0% dropped, 12/12 recebidos.
+- `h1 -> h2`: 10 pacotes enviados, 10 recebidos, 0% perda, RTT médio 0,065 ms.
+- `h2 -> h1`: 10 pacotes enviados, 10 recebidos, 0% perda, RTT médio 0,074 ms.
+- `h2 -> h1` com `iperf3`: receiver aproximadamente 88,4 Mbits/sec.
+- `h3 -> h1` com `iperf3`: receiver aproximadamente 87,9 Mbits/sec.
+- `h4 -> h1` com `iperf3`: receiver aproximadamente 88,5 Mbits/sec.
 - `h2`, `h3` e `h4` acessaram `manifest.mpd` com `HTTP/1.0 200 OK`, `Content-Type application/dash+xml` e `Content-Length 2201`.
 
 O arquivo `resultados/pingall.txt` é gerado ao executar `make baseline` em ambiente Linux/Mininet.

@@ -178,11 +178,12 @@ Os resultados registrados na pasta \texttt{resultados/} indicam funcionamento es
 \toprule
 Teste & Resultado observado & Arquivo \\
 \midrule
-\texttt{h1 -> h2} ping & 10 enviados, 10 recebidos, 0\% perda, RTT médio 0,123 ms & \texttt{ping\_h1\_h2.txt} \\
-\texttt{h2 -> h1} ping & 10 enviados, 10 recebidos, 0\% perda, RTT médio 0,078 ms & \texttt{ping\_h2\_h1.txt} \\
-\texttt{h2 -> h1} iperf3 & receiver aproximadamente 70,3 Mbits/sec & \texttt{iperf\_h2\_h1.txt} \\
-\texttt{h3 -> h1} iperf3 & receiver aproximadamente 72,9 Mbits/sec & \texttt{iperf\_h3\_h1.txt} \\
-\texttt{h4 -> h1} iperf3 & receiver aproximadamente 68,9 Mbits/sec & \texttt{iperf\_h4\_h1.txt} \\
+\texttt{pingall} & 0\% dropped, 12/12 recebidos & \texttt{pingall.txt} \\
+\texttt{h1 -> h2} ping & 10 enviados, 10 recebidos, 0\% perda, RTT médio 0,065 ms & \texttt{ping\_h1\_h2.txt} \\
+\texttt{h2 -> h1} ping & 10 enviados, 10 recebidos, 0\% perda, RTT médio 0,074 ms & \texttt{ping\_h2\_h1.txt} \\
+\texttt{h2 -> h1} iperf3 & receiver aproximadamente 88,4 Mbits/sec & \texttt{iperf\_h2\_h1.txt} \\
+\texttt{h3 -> h1} iperf3 & receiver aproximadamente 87,9 Mbits/sec & \texttt{iperf\_h3\_h1.txt} \\
+\texttt{h4 -> h1} iperf3 & receiver aproximadamente 88,5 Mbits/sec & \texttt{iperf\_h4\_h1.txt} \\
 DASH via \texttt{h2}, \texttt{h3}, \texttt{h4} & HTTP 200 OK, \texttt{application/dash+xml}, 2201 bytes & \texttt{dash\_h*\_header.txt} \\
 \bottomrule
 \end{tabular}

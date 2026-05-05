@@ -105,7 +105,7 @@ run_host h2 "ping -c 10 10.0.0.1" > "$RESULTS_DIR/ping_h2_h1.txt"
 
 echo "Iniciando servidor DASH no h1..."
 DASH_DIR_QUOTED="$(printf "%q" "$DASH_DIR")"
-run_host h1 "pkill -f 'python3 -m http.server 8000 --bind 10.0.0.1' >/dev/null 2>&1 || true"
+run_host h1 "pkill -f '[p]ython3 -m http.server 8000 --bind 10.0.0.1' >/dev/null 2>&1 || true"
 run_host h1 "cd $DASH_DIR_QUOTED && nohup python3 -m http.server 8000 --bind 10.0.0.1 >/tmp/qoe_dash_server.log 2>&1 &"
 sleep 1
 
@@ -115,7 +115,7 @@ run_host h3 "curl -I --max-time 5 http://10.0.0.1:8000/manifest.mpd" > "$RESULTS
 run_host h4 "curl -I --max-time 5 http://10.0.0.1:8000/manifest.mpd" > "$RESULTS_DIR/dash_h4_header.txt"
 
 echo "Executando testes iperf3..."
-run_host h1 "pkill -f 'iperf3 -s' >/dev/null 2>&1 || true"
+run_host h1 "pkill -f '[i]perf3 -s' >/dev/null 2>&1 || true"
 run_host h1 "iperf3 -s -D"
 sleep 1
 
