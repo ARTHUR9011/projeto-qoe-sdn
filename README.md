@@ -1,16 +1,18 @@
-# Projeto QoE SDN — Etapa 1
+# Projeto QoE SDN - Etapa 1
 
 ## Objetivo
 
-Construir um ambiente experimental funcional e reproduzível para streaming de vídeo DASH em Mininet, usando um controlador SDN com OpenFlow e coleta inicial de métricas de rede. Esta etapa estabelece a base do projeto "Melhoria da QoE em Streaming de Vídeo com Mininet, SDN e P4".
+Construir um ambiente experimental funcional e reproduzível para streaming de vídeo DASH em Mininet, usando controlador SDN, OpenFlow e coleta inicial de métricas de rede. Esta etapa estabelece a base do projeto "Melhoria da QoE em Streaming de Vídeo com Mininet, SDN e P4".
 
 ## Escopo da Etapa 1
 
-Esta entrega cobre apenas o cenário base, sem degradação artificial. Portanto, esta etapa não implementa `tc/netem`, mitigação dinâmica via controlador, P4 ou gráficos comparativos de degradação.
+Esta entrega cobre somente o cenário base. O projeto nesta etapa valida a topologia, o controlador SDN, o acesso HTTP ao manifesto DASH e as métricas iniciais de conectividade, latência, perda e throughput.
+
+Não foram aplicados atraso, perda, jitter ou limitação artificial de banda. Também não foram implementados mitigação dinâmica, degradação com `tc/netem`, comparação entre cenários degradados ou P4. P4 é citado apenas como possível extensão futura.
 
 ## Fundamentação resumida
 
-SDN separa o plano de controle do plano de dados: o controlador decide a lógica de encaminhamento, enquanto os switches executam as regras instaladas. O OpenFlow permite que o controlador programe tabelas de fluxo nos switches. O Mininet emula hosts, switches, enlaces e topologias customizadas em Linux, com suporte nativo a OpenFlow. P4 está relacionado à programabilidade do plano de dados e pode ser usado como extensão futura, mas não faz parte da Etapa 1.
+SDN separa o plano de controle do plano de dados. O controlador decide a lógica de encaminhamento, enquanto os switches executam as regras instaladas. O OpenFlow permite que o controlador programe tabelas de fluxo nos switches. O Mininet emula hosts, switches, enlaces e topologias customizadas em Linux, com suporte a OpenFlow.
 
 ## Topologia
 
@@ -41,7 +43,8 @@ O controlador `c0` controla o switch `s1` por OpenFlow.
 - iperf3
 - curl
 - ffmpeg, apenas se for gerar novamente o vídeo DASH
-- VLC opcional para validação visual
+
+O VLC não é necessário para reproduzir os resultados documentados nesta etapa. A validação registrada foi feita por acesso HTTP ao manifesto `manifest.mpd`.
 
 Em Ubuntu, uma instalação típica é:
 
@@ -89,7 +92,7 @@ Teste a conectividade:
 pingall
 ```
 
-Teste o DASH:
+Teste o DASH por HTTP:
 
 ```bash
 h2 curl -I http://10.0.0.1:8000/manifest.mpd
@@ -119,24 +122,46 @@ Esse alvo usa `mnexec` para executar comandos nos hosts do Mininet e salva os ar
 No cenário base espera-se:
 
 - `pingall` com `0% dropped`;
-- respostas `HTTP/1.0 200 OK` para `manifest.mpd`;
+- respostas `HTTP/1.0 200 OK` para o manifesto DASH `manifest.mpd`;
 - `Content-Type` do manifesto como `application/dash+xml`;
 - throughput estável nos testes `iperf3`;
 - ausência de degradação significativa.
 
 ## Resultados obtidos
 
-Os resultados abaixo vêm dos arquivos já presentes em `resultados/`:
+Os resultados iniciais foram coletados no cenário base, sem aplicação de atraso, perda, jitter ou limitação artificial de banda.
 
-- `pingall`: 0% dropped, 12/12 recebidos.
-- `h1 -> h2`: 10 pacotes enviados, 10 recebidos, 0% perda, RTT médio 0,065 ms.
-- `h2 -> h1`: 10 pacotes enviados, 10 recebidos, 0% perda, RTT médio 0,074 ms.
-- `h2 -> h1` com `iperf3`: receiver aproximadamente 88,4 Mbits/sec.
-- `h3 -> h1` com `iperf3`: receiver aproximadamente 87,9 Mbits/sec.
-- `h4 -> h1` com `iperf3`: receiver aproximadamente 88,5 Mbits/sec.
-- `h2`, `h3` e `h4` acessaram `manifest.mpd` com `HTTP/1.0 200 OK`, `Content-Type application/dash+xml` e `Content-Length 2201`.
+### Conectividade
 
-O arquivo `resultados/pingall.txt` é gerado ao executar `make baseline` em ambiente Linux/Mininet.
+O teste `pingall` apresentou:
+
+- Perda: `0% dropped`
+- Resultado: `12/12 received` (12 pacotes recebidos de 12 enviados)
+
+### Latência e perda
+
+| Teste | Pacotes transmitidos | Pacotes recebidos | Perda | RTT min | RTT médio | RTT max | RTT mdev |
+|---|---:|---:|---:|---:|---:|---:|---:|
+| h1 -> h2 | 10 | 10 | 0% | 0.051 ms | 0.065 ms | 0.092 ms | 0.010 ms |
+| h2 -> h1 | 10 | 10 | 0% | 0.052 ms | 0.074 ms | 0.133 ms | 0.023 ms |
+
+### Throughput
+
+| Fluxo | Intervalo sender | Sender | Intervalo receiver | Receiver | Retransmissões |
+|---|---:|---:|---:|---:|---:|
+| h2 -> h1 | 0.00-10.00 sec | 89.0 Mbits/sec | 0.00-10.01 sec | 88.4 Mbits/sec | 0 |
+| h3 -> h1 | 0.00-10.00 sec | 88.4 Mbits/sec | 0.00-10.02 sec | 87.9 Mbits/sec | 0 |
+| h4 -> h1 | 0.00-10.00 sec | 89.0 Mbits/sec | 0.00-10.02 sec | 88.5 Mbits/sec | 0 |
+
+### Validação DASH
+
+Os clientes `h2`, `h3` e `h4` acessaram o manifesto DASH `manifest.mpd` no servidor `h1` por HTTP.
+
+| Cliente | Código HTTP | Servidor | Content-Type | Content-Length | Last-Modified |
+|---|---|---|---|---:|---|
+| h2 | HTTP/1.0 200 OK | SimpleHTTP/0.6 Python/3.12.3 | application/dash+xml | 2201 | Tue, 05 May 2026 02:15:01 GMT |
+| h3 | HTTP/1.0 200 OK | SimpleHTTP/0.6 Python/3.12.3 | application/dash+xml | 2201 | Tue, 05 May 2026 02:15:01 GMT |
+| h4 | HTTP/1.0 200 OK | SimpleHTTP/0.6 Python/3.12.3 | application/dash+xml | 2201 | Tue, 05 May 2026 02:15:01 GMT |
 
 ## Organização do repositório
 
@@ -146,7 +171,3 @@ O arquivo `resultados/pingall.txt` é gerado ao executar `make baseline` em ambi
 - `video/`: vídeo de teste e segmentos DASH.
 - `resultados/`: medições iniciais de ping, iperf3 e validação HTTP do DASH.
 - `relatorio/`: relatório LaTeX da Etapa 1.
-
-## Próximas etapas
-
-A Etapa 2 deve introduzir degradação controlada com `tc/netem` ou `tbf`, tráfego concorrente com `iperf3` e correlação entre métricas de rede e QoE. Essas funcionalidades não foram implementadas nesta etapa.
