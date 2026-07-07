@@ -1,0 +1,49 @@
+# Demo Etapa 2 - Degradação e QoE
+# Versão express: mostra baseline + um cenário adverso combinado.
+# Executar dentro do CLI do Mininet via stdin.
+# Salva evidências em resultados/demo/etapa2.
+
+sh mkdir -p resultados/demo/etapa2/baseline
+sh mkdir -p resultados/demo/etapa2/combinado
+
+echo "===== ETAPA 2: preparar servidor DASH ====="
+h1 pkill -f http.server || true
+h1 bash scripts/start_dash_server.sh &
+sh sleep 2
+
+echo "===== ETAPA 2: limpar degradações antigas ====="
+h1 tc qdisc del dev h1-eth0 root || true
+h1 pkill -f iperf3 || true
+h3 pkill -f iperf3 || true
+h4 pkill -f iperf3 || true
+
+echo "===== ETAPA 2: QoE baseline sem degradação ====="
+h2 bash -c 'curl -s -o resultados/demo/etapa2/baseline/chunk_h2.m4s -w "cenario=baseline\ntempo=%{time_total}\ntamanho=%{size_download}\nvelocidade=%{speed_download}\nhttp=%{http_code}\n" http://10.0.0.1:8000/chunk-stream0-00001.m4s > resultados/demo/etapa2/baseline/qoe_chunk.txt'
+h2 cat resultados/demo/etapa2/baseline/qoe_chunk.txt
+
+echo "===== ETAPA 2: aplicar cenário adverso combinado ====="
+h1 tc qdisc del dev h1-eth0 root || true
+h1 tc qdisc add dev h1-eth0 root handle 1: netem delay 100ms 30ms loss 2%
+h1 tc qdisc add dev h1-eth0 parent 1: handle 2: tbf rate 2mbit burst 32kbit latency 400ms
+h1 tc qdisc show dev h1-eth0 | tee resultados/demo/etapa2/combinado/tc_qdisc.txt
+
+echo "===== ETAPA 2: gerar tráfego concorrente ====="
+h3 iperf3 -s -D
+h4 iperf3 -s -D
+sh sleep 1
+h1 bash -c 'iperf3 -c 10.0.0.3 -u -b 40M -t 20 > resultados/demo/etapa2/combinado/iperf_h1_h3.txt &'
+h1 bash -c 'iperf3 -c 10.0.0.4 -u -b 40M -t 20 > resultados/demo/etapa2/combinado/iperf_h1_h4.txt &'
+sh sleep 2
+
+echo "===== ETAPA 2: QoE com degradação ====="
+h2 bash -c 'curl -s -o resultados/demo/etapa2/combinado/chunk_h2.m4s -w "cenario=combinado\ntempo=%{time_total}\ntamanho=%{size_download}\nvelocidade=%{speed_download}\nhttp=%{http_code}\n" http://10.0.0.1:8000/chunk-stream0-00001.m4s > resultados/demo/etapa2/combinado/qoe_chunk.txt'
+h2 cat resultados/demo/etapa2/combinado/qoe_chunk.txt
+
+echo "===== ETAPA 2: limpar ambiente ====="
+h1 tc qdisc del dev h1-eth0 root || true
+h1 pkill -f iperf3 || true
+h3 pkill -f iperf3 || true
+h4 pkill -f iperf3 || true
+
+echo "===== FIM ETAPA 2 ====="
+exit

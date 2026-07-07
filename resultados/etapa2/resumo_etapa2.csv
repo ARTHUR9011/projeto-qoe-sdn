@@ -1,0 +1,7 @@
+cenario,tempo_s,tamanho_bytes,velocidade_Bps,vazao_Mbps,http,buffering_estimado_s
+baseline,0.070664,518334,7335191,58.68,200,0
+banda_2mbit,2.936878,518334,176491,1.41,200,0
+atraso_jitter,10.940929,518334,47375,0.38,200,6.94
+perda_2pct,0.198310,518334,2613756,20.91,200,0
+trafego_concorrente,0.045865,518334,11301297,90.41,200,0
+combinado,39.076777,518334,13264,0.106,200,35.08

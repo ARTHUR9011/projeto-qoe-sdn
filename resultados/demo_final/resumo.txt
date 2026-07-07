@@ -1,0 +1,15 @@
+Resumo da demo final - QoE SDN
+========================================
+
+Cenarios medidos:
+- Etapa 1 / ambiente_base: tempo=-s, velocidade=- B/s, http=200, exitcode=-, buffering_estimado=-s
+- Etapa 2 / baseline: tempo=0.251862s, velocidade=2058007 B/s, http=200, exitcode=0, buffering_estimado=0.000s
+- Etapa 2 / combinado_degradado: tempo=36.817902s, velocidade=14078 B/s, http=200, exitcode=0, buffering_estimado=32.818s
+- Etapa 3 / com_controle_sdn: tempo=7.517142s, velocidade=68953 B/s, http=200, exitcode=0, buffering_estimado=3.517s
+
+Arquivos importantes:
+- /home/arthur/projeto-qoe-sdn/resultados/demo_final/resumo.csv
+- /home/arthur/projeto-qoe-sdn/resultados/demo_final/resumo.txt
+- /home/arthur/projeto-qoe-sdn/resultados/demo_final/etapa3/com_controle/logs_decisao_filtrados.txt
+- /home/arthur/projeto-qoe-sdn/resultados/demo_final/etapa3/com_controle/flows_s1.txt
+- /home/arthur/projeto-qoe-sdn/resultados/demo_final/etapa3/com_controle/flows_s2.txt

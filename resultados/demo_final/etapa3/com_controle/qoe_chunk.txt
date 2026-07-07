@@ -1,0 +1,7 @@
+cenario=com_controle_sdn
+tempo=7.517142
+tamanho=518334
+velocidade=68953
+http=200
+exitcode=0
+buffering_estimado=3.517

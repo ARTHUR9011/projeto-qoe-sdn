@@ -1,0 +1,40 @@
+# Demo Etapa 3 - Controle via SDN
+# Executar com o controlador de QoE ativo.
+# Executar dentro do CLI do Mininet via stdin.
+# Salva evidências em resultados/demo/etapa3.
+
+sh mkdir -p resultados/demo/etapa3/com_controle
+
+echo "===== ETAPA 3: preparar servidor DASH ====="
+h1 pkill -f http.server || true
+h1 bash scripts/start_dash_server.sh &
+sh sleep 2
+
+echo "===== ETAPA 3: limpar iperf/tc antigos ====="
+h1 tc qdisc del dev h1-eth0 root || true
+h1 pkill -f iperf3 || true
+h3 pkill -f iperf3 || true
+h4 pkill -f iperf3 || true
+
+echo "===== ETAPA 3: validar manifesto ====="
+h2 curl -I http://10.0.0.1:8000/manifest.mpd | tee resultados/demo/etapa3/manifest_h2.txt
+
+echo "===== ETAPA 3: gerar fluxos UDP concorrentes h1->h3 e h1->h4 ====="
+h3 iperf3 -s -D
+h4 iperf3 -s -D
+sh sleep 1
+h1 bash -c 'iperf3 -c 10.0.0.3 -u -b 40M -t 30 > resultados/demo/etapa3/com_controle/iperf_h1_h3.txt &'
+h1 bash -c 'iperf3 -c 10.0.0.4 -u -b 40M -t 30 > resultados/demo/etapa3/com_controle/iperf_h1_h4.txt &'
+sh sleep 3
+
+echo "===== ETAPA 3: medir QoE do cliente h2 com controle SDN ativo ====="
+h2 bash -c 'curl -s -o resultados/demo/etapa3/com_controle/chunk_h2.m4s -w "cenario=com_controle_sdn\ntempo=%{time_total}\ntamanho=%{size_download}\nvelocidade=%{speed_download}\nhttp=%{http_code}\n" http://10.0.0.1:8000/chunk-stream0-00001.m4s > resultados/demo/etapa3/com_controle/qoe_chunk.txt'
+h2 cat resultados/demo/etapa3/com_controle/qoe_chunk.txt
+
+echo "===== ETAPA 3: limpeza ====="
+h1 pkill -f iperf3 || true
+h3 pkill -f iperf3 || true
+h4 pkill -f iperf3 || true
+
+echo "===== FIM ETAPA 3 ====="
+exit

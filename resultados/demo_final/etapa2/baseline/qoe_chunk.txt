@@ -1,0 +1,7 @@
+cenario=baseline
+tempo=0.251862
+tamanho=518334
+velocidade=2058007
+http=200
+exitcode=0
+buffering_estimado=0.000

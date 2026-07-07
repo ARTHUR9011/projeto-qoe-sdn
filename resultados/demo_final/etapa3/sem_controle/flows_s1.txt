@@ -1,0 +1,5 @@
+ cookie=0x0, duration=16.282s, table=0, n_packets=40, n_bytes=3069, priority=1,in_port="s1-eth2",dl_dst=00:00:00:00:00:01 actions=output:"s1-eth1"
+ cookie=0x0, duration=16.278s, table=0, n_packets=17, n_bytes=1653, priority=1,in_port="s1-eth1",dl_dst=00:00:00:00:00:02 actions=output:"s1-eth2"
+ cookie=0x0, duration=16.121s, table=0, n_packets=8328, n_bytes=12396108, priority=1,in_port="s1-eth1",dl_dst=00:00:00:00:00:03 actions=output:"s1-eth2"
+ cookie=0x0, duration=16.062s, table=0, n_packets=7296, n_bytes=10848532, priority=1,in_port="s1-eth1",dl_dst=00:00:00:00:00:04 actions=output:"s1-eth2"
+ cookie=0x0, duration=20.763s, table=0, n_packets=47, n_bytes=5285, priority=0 actions=CONTROLLER:65535

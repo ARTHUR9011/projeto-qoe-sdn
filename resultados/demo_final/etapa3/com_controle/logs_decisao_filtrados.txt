@@ -1,0 +1,21 @@
+Switch conectado: dpid=1. Regra table-miss instalada.
+Switch conectado: dpid=1. Regra table-miss instalada.
+[QoE-SDN] Switch conectado: dpid=1. Regra table-miss instalada.
+Datapath registrado para monitoramento: dpid=1
+Datapath registrado para monitoramento: dpid=1
+[QoE-SDN] Datapath registrado para monitoramento: dpid=1
+Switch conectado: dpid=2. Regra table-miss instalada.
+Switch conectado: dpid=2. Regra table-miss instalada.
+[QoE-SDN] Switch conectado: dpid=2. Regra table-miss instalada.
+Datapath registrado para monitoramento: dpid=2
+Datapath registrado para monitoramento: dpid=2
+[QoE-SDN] Datapath registrado para monitoramento: dpid=2
+Degradacao detectada: dpid=1, porta=1, taxa=17.14 Mbit/s
+Degradacao detectada: dpid=1, porta=1, taxa=17.14 Mbit/s
+[QoE-SDN] Degradacao detectada: dpid=1, porta=1, taxa=17.14 Mbit/s
+Mitigacao aplicada no dpid=1: bloqueio dinamico de fluxos UDP concorrentes h1->h3 e h1->h4.
+Mitigacao aplicada no dpid=1: bloqueio dinamico de fluxos UDP concorrentes h1->h3 e h1->h4.
+[QoE-SDN] Mitigacao aplicada no dpid=1: bloqueio dinamico de fluxos UDP concorrentes h1->h3 e h1->h4.
+Mitigacao aplicada no dpid=2: bloqueio dinamico de fluxos UDP concorrentes h1->h3 e h1->h4.
+Mitigacao aplicada no dpid=2: bloqueio dinamico de fluxos UDP concorrentes h1->h3 e h1->h4.
+[QoE-SDN] Mitigacao aplicada no dpid=2: bloqueio dinamico de fluxos UDP concorrentes h1->h3 e h1->h4.

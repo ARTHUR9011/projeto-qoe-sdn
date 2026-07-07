@@ -1,0 +1,7 @@
+HTTP/1.0 200 OK
+[1mServer[0m: SimpleHTTP/0.6 Python/3.12.3
+[1mDate[0m: Tue, 07 Jul 2026 16:45:15 GMT
+[1mContent-type[0m: application/dash+xml
+[1mContent-Length[0m: 2201
+[1mLast-Modified[0m: Tue, 05 May 2026 02:15:01 GMT
+

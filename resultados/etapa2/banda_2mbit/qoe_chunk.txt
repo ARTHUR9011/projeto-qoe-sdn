@@ -1,0 +1,4 @@
+tempo=2.936878
+tamanho=518334
+velocidade=176491
+http=200

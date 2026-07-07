@@ -1,0 +1,2 @@
+qdisc netem 1: root refcnt 9 limit 1000 delay 100ms  30ms loss 2%
+qdisc tbf 2: parent 1: rate 2Mbit burst 4Kb lat 400ms 

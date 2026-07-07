@@ -1,0 +1,5 @@
+etapa,cenario,tempo,tamanho,velocidade,http,exitcode,buffering_estimado
+1,ambiente_base,,,,200,,
+2,baseline,0.251862,518334,2058007,200,0,0.000
+2,combinado_degradado,36.817902,518334,14078,200,0,32.818
+3,com_controle_sdn,7.517142,518334,68953,200,0,3.517

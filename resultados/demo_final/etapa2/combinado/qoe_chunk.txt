@@ -1,0 +1,7 @@
+cenario=combinado_degradado
+tempo=36.817902
+tamanho=518334
+velocidade=14078
+http=200
+exitcode=0
+buffering_estimado=32.818

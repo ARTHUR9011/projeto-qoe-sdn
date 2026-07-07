@@ -1,0 +1,7 @@
+cenario=sem_controle_sdn
+tempo=12.001808
+tamanho=0
+velocidade=0
+http=000
+exitcode=28
+buffering_estimado=8.002

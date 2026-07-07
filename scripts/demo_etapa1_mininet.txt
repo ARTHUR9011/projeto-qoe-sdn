@@ -1,0 +1,30 @@
+# Demo Etapa 1 - Ambiente experimental
+# Executar dentro do CLI do Mininet via stdin.
+# Salva evidências em resultados/demo/etapa1.
+
+sh mkdir -p resultados/demo/etapa1
+
+echo "===== ETAPA 1: conectividade ====="
+pingall | tee resultados/demo/etapa1/pingall.txt
+
+echo "===== ETAPA 1: servidor DASH ====="
+h1 pkill -f http.server || true
+h1 bash scripts/start_dash_server.sh &
+sh sleep 2
+
+echo "===== ETAPA 1: manifesto DASH ====="
+h2 curl -I http://10.0.0.1:8000/manifest.mpd | tee resultados/demo/etapa1/manifest_h2.txt
+h3 curl -I http://10.0.0.1:8000/manifest.mpd | tee resultados/demo/etapa1/manifest_h3.txt
+h4 curl -I http://10.0.0.1:8000/manifest.mpd | tee resultados/demo/etapa1/manifest_h4.txt
+
+echo "===== ETAPA 1: throughput iperf3 ====="
+h1 pkill -f iperf3 || true
+h1 iperf3 -s -D
+sh sleep 1
+h2 iperf3 -c 10.0.0.1 -t 5 | tee resultados/demo/etapa1/iperf_h2_h1.txt
+h3 iperf3 -c 10.0.0.1 -t 5 | tee resultados/demo/etapa1/iperf_h3_h1.txt
+h4 iperf3 -c 10.0.0.1 -t 5 | tee resultados/demo/etapa1/iperf_h4_h1.txt
+h1 pkill -f iperf3 || true
+
+echo "===== FIM ETAPA 1 ====="
+exit
