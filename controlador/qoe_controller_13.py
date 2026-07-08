@@ -24,6 +24,10 @@ LOG_FILE = os.environ.get(
     str(PROJECT_ROOT / "resultados" / "etapa3" / "logs" / "controlador_decisoes.log"),
 )
 
+# Duracao das regras de drop instaladas na mitigacao. O mesmo valor e usado
+# para rearmar a deteccao quando as regras expiram nos switches.
+MITIGACAO_TIMEOUT_S = 60
+
 
 class QoEController13(app_manager.OSKenApp):
     OFP_VERSIONS = [ofproto_v1_3.OFP_VERSION]
@@ -35,6 +39,7 @@ class QoEController13(app_manager.OSKenApp):
         self.datapaths = {}
         self.last_port_stats = {}
         self.mitigacao_ativa = False
+        self.mitigacao_expira_em = 0.0
 
         os.makedirs(os.path.dirname(LOG_FILE), exist_ok=True)
 
@@ -194,6 +199,14 @@ class QoEController13(app_manager.OSKenApp):
         dpid = datapath.id
         now = time.time()
 
+        # Rearma a deteccao quando as regras de drop ja expiraram nos switches,
+        # permitindo nova mitigacao se o trafego concorrente retornar.
+        if self.mitigacao_ativa and now >= self.mitigacao_expira_em:
+            self.mitigacao_ativa = False
+            self.registrar_decisao(
+                "Regras de mitigacao expiraram: deteccao rearmada."
+            )
+
         for stat in sorted(ev.msg.body, key=attrgetter("port_no")):
             port_no = stat.port_no
 
@@ -223,6 +236,7 @@ class QoEController13(app_manager.OSKenApp):
 
     def aplicar_mitigacao(self):
         self.mitigacao_ativa = True
+        self.mitigacao_expira_em = time.time() + MITIGACAO_TIMEOUT_S
 
         for dpid, datapath in self.datapaths.items():
             parser = datapath.ofproto_parser
@@ -243,8 +257,8 @@ class QoEController13(app_manager.OSKenApp):
                 ipv4_dst="10.0.0.4"
             )
 
-            self.drop_flow(datapath, match_h1_h3_udp, priority=300, hard_timeout=60)
-            self.drop_flow(datapath, match_h1_h4_udp, priority=300, hard_timeout=60)
+            self.drop_flow(datapath, match_h1_h3_udp, priority=300, hard_timeout=MITIGACAO_TIMEOUT_S)
+            self.drop_flow(datapath, match_h1_h4_udp, priority=300, hard_timeout=MITIGACAO_TIMEOUT_S)
 
             self.registrar_decisao(
                 f"Mitigacao aplicada no dpid={dpid}: bloqueio dinamico de fluxos UDP concorrentes h1->h3 e h1->h4."
