@@ -1,0 +1,926 @@
+<title>QoE + SDN — Projeto Final</title>
+<style>
+  :root {
+    --bg: #0B1118;
+    --surface: #101820;
+    --surface-2: #16222E;
+    --border: #223140;
+    --ink: #E6EDF3;
+    --muted: #93A6B8;
+    --faint: #5C7183;
+    --accent: #53C6EC;
+    --accent-deep: #1D93BE;
+    --warn: #E3A94F;
+    --warn-deep: #B67E23;
+    --good: #6FD49A;
+    --good-deep: #2E9C5C;
+    --mono: "Cascadia Code", "Consolas", "SF Mono", ui-monospace, monospace;
+    --sans: "Segoe UI", -apple-system, "Helvetica Neue", Arial, sans-serif;
+  }
+
+  * {
+    box-sizing: border-box;
+  }
+
+  html,
+  body {
+    margin: 0;
+    padding: 0;
+  }
+
+  body {
+    background: var(--bg);
+    color: var(--ink);
+    font-family: var(--sans);
+    line-height: 1.55;
+  }
+
+  .deck {
+    height: 100svh;
+    overflow-y: auto;
+    scroll-snap-type: y mandatory;
+    scroll-behavior: smooth;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .deck {
+      scroll-behavior: auto;
+    }
+  }
+
+  .slide {
+    min-height: 100svh;
+    scroll-snap-align: start;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    padding: 3.5rem clamp(1.25rem, 6vw, 5rem);
+    position: relative;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .slide-inner {
+    max-width: 62rem;
+    width: 100%;
+    margin: 0 auto;
+  }
+
+  .slide-num {
+    position: absolute;
+    top: 1.4rem;
+    right: clamp(1.25rem, 6vw, 5rem);
+    font-family: var(--mono);
+    font-size: 0.75rem;
+    color: var(--faint);
+  }
+
+  .eyebrow {
+    font-family: var(--mono);
+    font-size: 0.78rem;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin: 0 0 1rem;
+  }
+
+  h1,
+  h2 {
+    text-wrap: balance;
+    margin: 0 0 1.2rem;
+    font-weight: 650;
+    letter-spacing: -0.01em;
+  }
+
+  h1 {
+    font-size: clamp(2rem, 5vw, 3.4rem);
+    line-height: 1.12;
+  }
+
+  h2 {
+    font-size: clamp(1.5rem, 3.4vw, 2.3rem);
+    line-height: 1.18;
+  }
+
+  p.lead {
+    font-size: clamp(1.02rem, 1.8vw, 1.22rem);
+    color: var(--muted);
+    max-width: 44rem;
+    margin: 0 0 1rem;
+  }
+
+  p.lead strong,
+  li strong {
+    color: var(--ink);
+    font-weight: 600;
+  }
+
+  .meta {
+    margin-top: 2.5rem;
+    font-size: 0.95rem;
+    color: var(--muted);
+  }
+
+  .meta .names {
+    color: var(--ink);
+    font-weight: 600;
+  }
+
+  .cards {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(14rem, 1fr));
+    gap: 1rem;
+    margin-top: 1.6rem;
+  }
+
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 1.15rem 1.25rem;
+  }
+
+  .card .tag {
+    font-family: var(--mono);
+    font-size: 0.72rem;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--accent);
+    display: block;
+    margin-bottom: 0.5rem;
+  }
+
+  .card h3 {
+    margin: 0 0 0.4rem;
+    font-size: 1.05rem;
+    font-weight: 650;
+  }
+
+  .card p {
+    margin: 0;
+    font-size: 0.9rem;
+    color: var(--muted);
+  }
+
+  .toolgrid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(15rem, 1fr));
+    gap: 0.75rem;
+    margin-top: 1.4rem;
+  }
+
+  .tool {
+    display: flex;
+    gap: 0.8rem;
+    align-items: baseline;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 0.8rem 1rem;
+    font-size: 0.92rem;
+  }
+
+  .tool b {
+    font-family: var(--mono);
+    font-size: 0.85rem;
+    color: var(--accent);
+    white-space: nowrap;
+    font-weight: 600;
+  }
+
+  .tool span {
+    color: var(--muted);
+  }
+
+  .term {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 1rem 1.2rem;
+    font-family: var(--mono);
+    font-size: clamp(0.7rem, 1.5vw, 0.88rem);
+    line-height: 1.7;
+    overflow-x: auto;
+    white-space: pre;
+    color: var(--muted);
+    margin: 1.4rem 0 0;
+  }
+
+  .term .hl {
+    color: var(--ink);
+  }
+
+  .term .ok {
+    color: var(--good);
+  }
+
+  .term .warnl {
+    color: var(--warn);
+  }
+
+  .term .acc {
+    color: var(--accent);
+  }
+
+  .stats {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1rem;
+    margin-top: 1.6rem;
+  }
+
+  .stat {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 0.9rem 1.3rem;
+    min-width: 10rem;
+    flex: 1;
+  }
+
+  .stat .v {
+    font-family: var(--mono);
+    font-size: 1.5rem;
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .stat .l {
+    font-size: 0.8rem;
+    color: var(--muted);
+    margin-top: 0.15rem;
+  }
+
+  .stat.good .v {
+    color: var(--good);
+  }
+
+  .stat.warn .v {
+    color: var(--warn);
+  }
+
+  .stat.acc .v {
+    color: var(--accent);
+  }
+
+  /* ---- bar charts ---- */
+  .chart {
+    margin-top: 1.8rem;
+  }
+
+  .chart-title {
+    font-size: 0.85rem;
+    color: var(--muted);
+    margin-bottom: 1rem;
+  }
+
+  .row {
+    display: grid;
+    grid-template-columns: 11.5rem 1fr;
+    gap: 0.75rem;
+    align-items: center;
+    margin-bottom: 0.55rem;
+  }
+
+  .row .name {
+    font-size: 0.88rem;
+    color: var(--muted);
+    text-align: right;
+  }
+
+  .row .track {
+    position: relative;
+    height: 1.35rem;
+  }
+
+  .row .bar {
+    position: absolute;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    background: var(--accent-deep);
+    border-radius: 0 4px 4px 0;
+    min-width: 3px;
+  }
+
+  .row .bar.exceed {
+    background: var(--warn-deep);
+  }
+
+  .row .bar.good {
+    background: var(--good-deep);
+  }
+
+  .row .val {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    font-family: var(--mono);
+    font-size: 0.8rem;
+    font-variant-numeric: tabular-nums;
+    color: var(--ink);
+    white-space: nowrap;
+    padding-left: 0.5rem;
+  }
+
+  .row:hover .bar {
+    filter: brightness(1.25);
+  }
+
+  .threshold {
+    position: absolute;
+    top: -0.4rem;
+    bottom: -0.4rem;
+    border-left: 2px dashed var(--faint);
+  }
+
+  .chart-note {
+    display: flex;
+    gap: 1.5rem;
+    flex-wrap: wrap;
+    margin-top: 0.9rem;
+    font-size: 0.78rem;
+    color: var(--faint);
+  }
+
+  .chart-note .k {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+  }
+
+  .chart-note .sw {
+    width: 0.85rem;
+    height: 0.85rem;
+    border-radius: 3px;
+    display: inline-block;
+  }
+
+  .diagram {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 1.3rem 1.5rem;
+    font-family: var(--mono);
+    font-size: clamp(0.68rem, 1.8vw, 0.95rem);
+    line-height: 1.75;
+    overflow-x: auto;
+    white-space: pre;
+    color: var(--muted);
+    margin: 1.5rem 0 0;
+  }
+
+  .diagram .n {
+    color: var(--accent);
+    font-weight: 600;
+  }
+
+  .diagram .g {
+    color: var(--warn);
+    font-weight: 600;
+  }
+
+  ul.pts {
+    margin: 1.2rem 0 0;
+    padding-left: 1.2rem;
+    color: var(--muted);
+    max-width: 46rem;
+  }
+
+  ul.pts li {
+    margin-bottom: 0.6rem;
+  }
+
+  .flow {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.6rem;
+    align-items: stretch;
+    margin-top: 1.5rem;
+  }
+
+  .step {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 0.85rem 1rem;
+    flex: 1;
+    min-width: 11rem;
+  }
+
+  .step .s-tag {
+    font-family: var(--mono);
+    font-size: 0.7rem;
+    color: var(--accent);
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    display: block;
+    margin-bottom: 0.35rem;
+  }
+
+  .step p {
+    margin: 0;
+    font-size: 0.86rem;
+    color: var(--muted);
+  }
+
+  .step p b {
+    color: var(--ink);
+  }
+
+  .arrow {
+    align-self: center;
+    color: var(--faint);
+    font-family: var(--mono);
+  }
+
+  .dots {
+    position: fixed;
+    right: 0.9rem;
+    top: 50%;
+    transform: translateY(-50%);
+    display: flex;
+    flex-direction: column;
+    gap: 0.55rem;
+    z-index: 10;
+  }
+
+  .dots a {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--border);
+    display: block;
+  }
+
+  .dots a.active {
+    background: var(--accent);
+  }
+
+  .dots a:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+  }
+
+  .hint {
+    position: fixed;
+    bottom: 1rem;
+    left: 50%;
+    transform: translateX(-50%);
+    font-family: var(--mono);
+    font-size: 0.7rem;
+    color: var(--faint);
+    background: var(--surface);
+    border: 1px solid var(--border);
+    padding: 0.3rem 0.8rem;
+    border-radius: 99px;
+    z-index: 10;
+  }
+
+  @media (max-width: 640px) {
+    .row {
+      grid-template-columns: 7.5rem 1fr;
+    }
+
+    .dots {
+      display: none;
+    }
+  }
+
+  /* ---- exportação para PDF: um slide por página A4 paisagem ----
+     Tema claro dedicado à impressão: não depende do toggle
+     "gráficos de fundo" do navegador para ficar legível. */
+  @media print {
+    @page {
+      size: 297mm 210mm;
+      margin: 0;
+    }
+
+    :root {
+      --bg: #FFFFFF;
+      --surface: #F4F7FA;
+      --surface-2: #E9EEF3;
+      --border: #C9D5DF;
+      --ink: #16222E;
+      --muted: #46586A;
+      --faint: #7A8DA0;
+      --accent: #0B6E93;
+      --accent-deep: #1D93BE;
+      --warn: #8A5A10;
+      --warn-deep: #B67E23;
+      --good: #1C7444;
+      --good-deep: #2E9C5C;
+    }
+
+    html {
+      font-size: 13px;
+    }
+
+    * {
+      print-color-adjust: exact;
+      -webkit-print-color-adjust: exact;
+    }
+
+    .slide {
+      background: var(--bg);
+    }
+
+    .threshold {
+      border-left-color: var(--muted);
+    }
+
+    .deck {
+      height: auto;
+      overflow: visible;
+      scroll-snap-type: none;
+    }
+
+    .slide {
+      min-height: 0;
+      height: 209mm;
+      width: 100%;
+      break-after: page;
+      break-inside: avoid;
+      border-bottom: none;
+      padding: 12mm 18mm;
+      overflow: hidden;
+    }
+
+    .slide:last-child {
+      break-after: auto;
+    }
+
+    .dots,
+    .hint {
+      display: none;
+    }
+  }
+</style>
+
+<div class="deck" id="deck">
+
+  <!-- 1 · CAPA -->
+  <section class="slide" id="s1">
+    <div class="slide-num">01 / 11</div>
+    <div class="slide-inner">
+      <p class="eyebrow">Unipampa · Engenharia de Software · Programabilidade de infraestrutura de redes</p>
+      <h1>QoE em Streaming de Vídeo<br>com Controle via SDN</h1>
+      <p class="lead">Construção do ambiente experimental, caracterização da degradação da Qualidade de Experiência e
+        mitigação dinâmica com OpenFlow.</p>
+      <div class="meta">
+        <div class="names">Arthur Provenzi Parizotto &nbsp;·&nbsp; Rafael Lopes</div>
+        <div>Professor Marcelo Caggiani Luizelli </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 2 · PROBLEMA -->
+  <section class="slide" id="s2">
+    <div class="slide-num">02 / 11</div>
+    <div class="slide-inner">
+      <p class="eyebrow">O problema</p>
+      <h2>Vídeo DASH é baixado em segmentos de 4 segundos — e a rede nem sempre colabora</h2>
+      <ul class="pts">
+        <li>No streaming <strong>DASH</strong>, o player baixa o vídeo em pequenos segmentos. Se um segmento demora
+          <strong>mais de 4 s</strong> para chegar, a reprodução trava: é o <strong>rebuffering</strong>.</li>
+        <li>Banda limitada, atraso, jitter, perda de pacotes e <strong>tráfego concorrente</strong> degradam a Qualidade
+          de Experiência (QoE) do usuário.</li>
+        <li><strong>Pergunta do projeto:</strong> uma rede programável (SDN) consegue <em>detectar</em> essa degradação
+          e <em>reagir sozinha</em> para proteger o vídeo?</li>
+      </ul>
+    </div>
+  </section>
+
+  <!-- 3 · VISÃO GERAL -->
+  <section class="slide" id="s3">
+    <div class="slide-num">03 / 11</div>
+    <div class="slide-inner">
+      <p class="eyebrow">Visão geral</p>
+      <h2>Três etapas: construir, degradar, controlar</h2>
+      <div class="cards">
+        <div class="card">
+          <span class="tag">Etapa 1</span>
+          <h3>Construir o ambiente</h3>
+          <p>Topologia emulada no Mininet com switch OpenFlow, controlador SDN e servidor de vídeo DASH. Baseline de
+            latência, perda e throughput.</p>
+        </div>
+        <div class="card">
+          <span class="tag">Etapa 2</span>
+          <h3>Degradar e medir</h3>
+          <p>Cenários adversos com <code>tc/netem/tbf</code> e tráfego concorrente com <code>iperf3</code>. A QoE é
+            medida pelo tempo de download de um segmento.</p>
+        </div>
+        <div class="card">
+          <span class="tag">Etapa 3</span>
+          <h3>Controlar via SDN</h3>
+          <p>Controlador monitora a rede, detecta tráfego elevado e instala regras OpenFlow que bloqueiam os fluxos
+            concorrentes, preservando o vídeo.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 4 · FERRAMENTAS -->
+  <section class="slide" id="s4">
+    <div class="slide-num">04 / 11</div>
+    <div class="slide-inner">
+      <p class="eyebrow">Ambiente experimental</p>
+      <h2>Tudo roda emulado em uma única máquina Linux</h2>
+      <div class="toolgrid">
+        <div class="tool"><b>Mininet</b><span>emula hosts, switches e enlaces virtuais</span></div>
+        <div class="tool"><b>Open vSwitch</b><span>switch virtual compatível com OpenFlow 1.3</span></div>
+        <div class="tool"><b>OS-Ken / Ryu</b><span>controlador SDN que programa os switches</span></div>
+        <div class="tool"><b>FFmpeg</b><span>gera o vídeo e o segmenta no formato DASH</span></div>
+        <div class="tool"><b>http.server</b><span>servidor HTTP do Python entrega os segmentos</span></div>
+        <div class="tool"><b>curl -w</b><span>mede tempo, vazão e código HTTP do download</span></div>
+        <div class="tool"><b>iperf3</b><span>gera tráfego UDP concorrente ao vídeo</span></div>
+        <div class="tool"><b>tc / netem / tbf</b><span>aplica banda limitada, atraso, jitter e perda</span></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 5 · ETAPA 1 -->
+  <section class="slide" id="s5">
+    <div class="slide-num">05 / 11</div>
+    <div class="slide-inner">
+      <p class="eyebrow">Etapa 1 · Ambiente base</p>
+      <h2>Um servidor DASH, três clientes, um switch OpenFlow</h2>
+      <div class="diagram"> <span class="n">h2</span> cliente principal
+        |
+        <span class="n">h1</span> servidor ---- <span class="n">s1</span> ---- <span class="n">h3</span> cliente
+        DASH |
+        <span class="n">h4</span> cliente
+
+        controlador <span class="n">c0</span> (OS-Ken) programa o s1 via OpenFlow 1.3
+      </div>
+      <div class="stats">
+        <div class="stat good">
+          <div class="v">0%</div>
+          <div class="l">perda no pingall (12/12)</div>
+        </div>
+        <div class="stat acc">
+          <div class="v">~0,07 ms</div>
+          <div class="l">RTT médio entre hosts</div>
+        </div>
+        <div class="stat acc">
+          <div class="v">~88 Mbit/s</div>
+          <div class="l">throughput com iperf3</div>
+        </div>
+        <div class="stat good">
+          <div class="v">HTTP 200</div>
+          <div class="l">manifesto DASH acessível</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 6 · ETAPA 2 MÉTODO -->
+  <section class="slide" id="s6">
+    <div class="slide-num">06 / 11</div>
+    <div class="slide-inner">
+      <p class="eyebrow">Etapa 2 · Metodologia</p>
+      <h2>A QoE vira número: tempo para baixar um segmento</h2>
+      <ul class="pts">
+        <li>As degradações são aplicadas com <strong>tc</strong> na interface de saída do servidor
+          (<strong>h1-eth0</strong>) — é por ali que todo o vídeo passa.</li>
+        <li>O cliente <strong>h2</strong> baixa sempre o mesmo segmento de 518 KB e o <strong>curl</strong> registra
+          tempo, velocidade e código HTTP.</li>
+        <li>Como cada segmento tem 4 s de vídeo: <strong>buffering estimado = max(0, tempo de download − 4 s)</strong>.
+        </li>
+      </ul>
+      <div class="term"><span class="acc">h2</span> curl -o chunk.m4s -w <span class="hl">"tempo=%{time_total}
+          velocidade=%{speed_download} http=%{http_code}"</span> \
+        http://10.0.0.1:8000/chunk-stream0-00001.m4s</div>
+    </div>
+  </section>
+
+  <!-- 7 · ETAPA 2 RESULTADOS -->
+  <section class="slide" id="s7">
+    <div class="slide-num">07 / 11</div>
+    <div class="slide-inner">
+      <p class="eyebrow">Etapa 2 · Resultados</p>
+      <h2>Nem toda degradação pesa igual</h2>
+      <div class="chart">
+        <div class="chart-title">Tempo de download do segmento DASH por cenário (segundos) — linha tracejada: limite de
+          4 s do segmento</div>
+        <!-- escala: 100% = 40 s ; limiar 4s = 10% -->
+        <div class="row">
+          <div class="name">Tráfego concorrente</div>
+          <div class="track">
+            <div class="bar" style="width:0.4%"></div>
+            <div class="threshold" style="left:10%"></div>
+            <div class="val" style="left:0.9%">0,05 s</div>
+          </div>
+        </div>
+        <div class="row">
+          <div class="name">Baseline</div>
+          <div class="track">
+            <div class="bar" style="width:0.4%"></div>
+            <div class="threshold" style="left:10%"></div>
+            <div class="val" style="left:0.9%">0,07 s</div>
+          </div>
+        </div>
+        <div class="row">
+          <div class="name">Perda 2%</div>
+          <div class="track">
+            <div class="bar" style="width:0.6%"></div>
+            <div class="threshold" style="left:10%"></div>
+            <div class="val" style="left:1.1%">0,20 s</div>
+          </div>
+        </div>
+        <div class="row">
+          <div class="name">Banda 2 Mbit/s</div>
+          <div class="track">
+            <div class="bar" style="width:7.3%"></div>
+            <div class="threshold" style="left:10%"></div>
+            <div class="val" style="left:7.8%">2,94 s</div>
+          </div>
+        </div>
+        <div class="row">
+          <div class="name">Atraso/jitter 100±30 ms</div>
+          <div class="track">
+            <div class="bar exceed" style="width:27.4%"></div>
+            <div class="threshold" style="left:10%"></div>
+            <div class="val" style="left:27.9%">10,94 s</div>
+          </div>
+        </div>
+        <div class="row">
+          <div class="name">Combinado</div>
+          <div class="track">
+            <div class="bar exceed" style="width:97.7%"></div>
+            <div class="threshold" style="left:10%"></div>
+            <div class="val" style="left:70%">39,08 s</div>
+          </div>
+        </div>
+        <div class="chart-note">
+          <span class="k"><span class="sw" style="background:var(--accent-deep)"></span> dentro do limite (sem
+            buffering)</span>
+          <span class="k"><span class="sw" style="background:var(--warn-deep)"></span> acima de 4 s — rebuffering</span>
+        </div>
+      </div>
+      <ul class="pts">
+        <li>O cenário <strong>combinado</strong> (banda + atraso + perda + concorrência) foi <strong>553× mais
+            lento</strong> que o baseline.</li>
+        <li>Tráfego concorrente sozinho <strong>não degradou nada</strong> — sem um gargalo compartilhado, não há
+          disputa. Isso motiva a topologia da Etapa 3.</li>
+      </ul>
+    </div>
+  </section>
+
+  <!-- 8 · ETAPA 3 TOPOLOGIA -->
+  <section class="slide" id="s8">
+    <div class="slide-num">08 / 11</div>
+    <div class="slide-inner">
+      <p class="eyebrow">Etapa 3 · Nova topologia</p>
+      <h2>Um gargalo de verdade: 2 Mbit/s entre os switches</h2>
+      <div class="diagram"><span class="n">h1</span> servidor ---- <span class="n">s1</span> ══ <span class="g">gargalo
+          2 Mbit/s · 10 ms</span> ══ <span class="n">s2</span> ---- <span class="n">h2</span> cliente principal
+        DASH ---- <span class="n">h3</span> concorrente
+        ---- <span class="n">h4</span> concorrente</div>
+      <ul class="pts">
+        <li>Todo o tráfego — vídeo e concorrente — disputa o <strong>mesmo enlace de 2 Mbit/s</strong>.</li>
+        <li>O <strong>iperf3</strong> injeta fluxos UDP de 40 Mbit/s de h1 para h3 e h4, sufocando o download do vídeo
+          em h2.</li>
+        <li>Sem intervenção, o segmento que levava 0,07 s passa a levar <strong>mais de 60 s</strong>.</li>
+      </ul>
+    </div>
+  </section>
+
+  <!-- 9 · ETAPA 3 CONTROLADOR -->
+  <section class="slide" id="s9">
+    <div class="slide-num">09 / 11</div>
+    <div class="slide-inner">
+      <p class="eyebrow">Etapa 3 · Controlador QoE</p>
+      <h2>Detectar, mitigar, rearmar — em ciclo</h2>
+      <div class="flow">
+        <div class="step"><span class="s-tag">1 · Monitorar</span>
+          <p>Pede estatísticas de porta aos switches a cada <b>2 s</b> e calcula a taxa em Mbit/s pela diferença de
+            bytes.</p>
+        </div>
+        <div class="arrow">→</div>
+        <div class="step"><span class="s-tag">2 · Detectar</span>
+          <p>Taxa acima do limiar (<b>1,5 Mbit/s</b> no gargalo) é interpretada como degradação da QoE.</p>
+        </div>
+        <div class="arrow">→</div>
+        <div class="step"><span class="s-tag">3 · Mitigar</span>
+          <p>Instala regras OpenFlow de <b>drop</b> (prioridade 300) para o UDP concorrente h1→h3 e h1→h4, por 60 s.</p>
+        </div>
+        <div class="arrow">→</div>
+        <div class="step"><span class="s-tag">4 · Rearmar</span>
+          <p>Quando as regras expiram, a detecção <b>rearma</b>: se o tráfego voltar, a mitigação é reaplicada.</p>
+        </div>
+      </div>
+      <div class="term"><span class="warnl">Degradacao detectada:</span> dpid=1, porta=1, taxa=65.60 Mbit/s
+        <span class="ok">Mitigacao aplicada</span> no dpid=1: bloqueio dinamico de fluxos UDP concorrentes h1-&gt;h3 e
+        h1-&gt;h4.
+        <span class="ok">Mitigacao aplicada</span> no dpid=2: bloqueio dinamico de fluxos UDP concorrentes h1-&gt;h3 e
+        h1-&gt;h4.
+        <span class="acc">Regras de mitigacao expiraram:</span> deteccao rearmada.
+      </div>
+    </div>
+  </section>
+
+  <!-- 10 · ETAPA 3 RESULTADO -->
+  <section class="slide" id="s10">
+    <div class="slide-num">10 / 11</div>
+    <div class="slide-inner">
+      <p class="eyebrow">Etapa 3 · Resultado</p>
+      <h2>O mesmo download, 24× mais rápido</h2>
+      <div class="chart">
+        <div class="chart-title">Tempo de download do segmento sob tráfego concorrente (segundos)</div>
+        <!-- escala: 100% = 65 s -->
+        <div class="row">
+          <div class="name">Sem controle SDN</div>
+          <div class="track">
+            <div class="bar exceed" style="width:94.1%"></div>
+            <div class="val" style="left:64%">61,17 s &nbsp;·&nbsp; buffering 57,2 s</div>
+          </div>
+        </div>
+        <div class="row">
+          <div class="name">Com controle SDN</div>
+          <div class="track">
+            <div class="bar good" style="width:3.9%"></div>
+            <div class="val" style="left:4.4%">2,51 s · buffering 0 s</div>
+          </div>
+        </div>
+      </div>
+      <div class="stats">
+        <div class="stat good">
+          <div class="v">−95,9%</div>
+          <div class="l">no tempo de download</div>
+        </div>
+        <div class="stat good">
+          <div class="v">0 s</div>
+          <div class="l">de buffering estimado com controle</div>
+        </div>
+        <div class="stat acc">
+          <div class="v">1,65 Mbit/s</div>
+          <div class="l">vazão percebida (era 0,07)</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 11 · CONCLUSÃO -->
+  <section class="slide" id="s11">
+    <div class="slide-num">11 / 11</div>
+    <div class="slide-inner">
+      <p class="eyebrow">Conclusão</p>
+      <h2>A rede programável saiu da análise passiva para a reação automática</h2>
+      <ul class="pts">
+        <li>A QoE do streaming DASH é <strong>sensível às condições da rede</strong> — e métricas simples (tempo de
+          download, vazão, buffering estimado) bastam para caracterizá-la.</li>
+        <li>Um controlador SDN consegue <strong>detectar degradação e mitigá-la sozinho</strong>, instalando regras
+          OpenFlow dinamicamente.</li>
+        <li><strong>Trabalhos futuros:</strong> priorização por filas OpenFlow, reroteamento em topologias com múltiplos
+          caminhos e telemetria no plano de dados com P4.</li>
+      </ul>
+      <div class="term"><span class="acc">$</span> git clone https://github.com/ARTHUR9011/projeto-qoe-sdn.git
+        <span class="acc">$</span> make demo <span class="hl"># roda as 3 etapas automaticamente</span>
+        <span class="acc">$</span> make show-demo-results <span class="hl"># resumo dos resultados</span>
+      </div>
+    </div>
+  </section>
+
+</div>
+
+<nav class="dots" id="dots" aria-label="Navegação dos slides"></nav>
+<div class="hint">↑ ↓ para navegar</div>
+
+<script>
+  const deck = document.getElementById("deck");
+  const slides = Array.from(deck.querySelectorAll(".slide"));
+  const dotsBox = document.getElementById("dots");
+
+  slides.forEach((s, i) => {
+    const a = document.createElement("a");
+    a.href = "#" + s.id;
+    a.title = "Slide " + (i + 1);
+    a.addEventListener("click", (e) => {
+      e.preventDefault();
+      s.scrollIntoView();
+    });
+    dotsBox.appendChild(a);
+  });
+  const dots = Array.from(dotsBox.children);
+
+  let current = 0;
+  const io = new IntersectionObserver((entries) => {
+    entries.forEach((en) => {
+      if (en.isIntersecting) {
+        current = slides.indexOf(en.target);
+        dots.forEach((d, i) => d.classList.toggle("active", i === current));
+      }
+    });
+  }, { root: deck, threshold: 0.6 });
+  slides.forEach((s) => io.observe(s));
+
+  document.addEventListener("keydown", (e) => {
+    if (["ArrowDown", "ArrowRight", "PageDown", " "].includes(e.key)) {
+      e.preventDefault();
+      slides[Math.min(current + 1, slides.length - 1)].scrollIntoView();
+    } else if (["ArrowUp", "ArrowLeft", "PageUp"].includes(e.key)) {
+      e.preventDefault();
+      slides[Math.max(current - 1, 0)].scrollIntoView();
+    }
+  });
+</script>
