@@ -1,25 +1,25 @@
-# Projeto QoE SDN - Etapa 1
+# Projeto QoE SDN
 
 ## Objetivo
 
-Construir um ambiente experimental funcional e reproduzível para streaming de vídeo DASH em Mininet, usando controlador SDN, OpenFlow e coleta inicial de métricas de rede. Esta etapa estabelece a base do projeto "Melhoria da QoE em Streaming de Vídeo com Mininet, SDN e P4".
+Avaliar como condições adversas de rede afetam a Qualidade de Experiência (QoE) em streaming de vídeo DASH e demonstrar que um mecanismo de controle programável via SDN pode mitigar o impacto de fluxos concorrentes. O ambiente usa Mininet, Open vSwitch, OpenFlow 1.3 e controlador OS-Ken/Ryu.
 
-## Escopo da Etapa 1
+O projeto está organizado em três etapas:
 
-Esta entrega cobre somente o cenário base. O projeto nesta etapa valida a topologia, o controlador SDN, o acesso HTTP ao manifesto DASH e as métricas iniciais de conectividade, latência, perda e throughput.
+- **Etapa 1** — ambiente experimental base: topologia Mininet, controlador SDN, servidor DASH e coleta inicial de métricas (conectividade, latência, perda, throughput).
+- **Etapa 2** — caracterização da degradação da QoE: cenários adversos com `tc/netem/tbf` (banda, atraso/jitter, perda) e tráfego concorrente com `iperf3`.
+- **Etapa 3** — controle via SDN: controlador que monitora estatísticas OpenFlow, detecta tráfego elevado e instala regras dinâmicas de drop para bloquear fluxos UDP concorrentes, preservando o streaming.
 
-Não foram aplicados atraso, perda, jitter ou limitação artificial de banda. Também não foram implementados mitigação dinâmica, degradação com `tc/netem`, comparação entre cenários degradados ou P4. P4 é citado apenas como possível extensão futura.
+P4 não foi implementado; é citado apenas como extensão futura.
 
-## Fundamentação resumida
+## Topologias
 
-SDN separa o plano de controle do plano de dados. O controlador decide a lógica de encaminhamento, enquanto os switches executam as regras instaladas. O OpenFlow permite que o controlador programe tabelas de fluxo nos switches. O Mininet emula hosts, switches, enlaces e topologias customizadas em Linux, com suporte a OpenFlow.
-
-## Topologia
+### Etapa 1 e 2 — `topologia/topologia_qoe.py`
 
 - `h1`: servidor DASH, IP `10.0.0.1/24`
-- `h2`: cliente 1, IP `10.0.0.2/24`
-- `h3`: cliente 2, IP `10.0.0.3/24`
-- `h4`: cliente 3, IP `10.0.0.4/24`
+- `h2`: cliente principal, IP `10.0.0.2/24`
+- `h3`: cliente / concorrente, IP `10.0.0.3/24`
+- `h4`: cliente / concorrente, IP `10.0.0.4/24`
 - `s1`: switch OpenFlow 1.3
 - `c0`: controlador SDN remoto em `127.0.0.1:6633`
 
@@ -31,7 +31,20 @@ h1 ---- s1 ---- h3
           h4
 ```
 
-O controlador `c0` controla o switch `s1` por OpenFlow.
+### Etapa 3 — `topologia/topologia_qoe_etapa3.py`
+
+Dois switches com enlace gargalo de 2 Mbit/s e 10 ms entre eles, para que o tráfego concorrente realmente dispute recursos com o vídeo:
+
+```text
+h1 (servidor DASH) -- s1 ==[gargalo 2 Mbit/s]== s2 -- h2 (cliente principal)
+                                                   -- h3 (concorrente)
+                                                   -- h4 (concorrente)
+```
+
+## Controladores
+
+- `controlador/simple_switch_13.py`: switch L2 com aprendizado de MAC (Etapas 1 e 2).
+- `controlador/qoe_controller_13.py`: controlador QoE da Etapa 3. Solicita estatísticas de porta a cada 2 s, estima a taxa em Mbit/s e, ao ultrapassar o limiar de 1,5 Mbit/s, instala regras de drop (prioridade 300, `hard_timeout` de 60 s) para os fluxos UDP `h1->h3` e `h1->h4`. Quando as regras expiram, a detecção é rearmada automaticamente e uma nova mitigação pode ser aplicada se o tráfego concorrente retornar. As decisões são registradas em `resultados/etapa3/logs/controlador_decisoes.log`.
 
 ## Requisitos
 
@@ -44,7 +57,7 @@ O controlador `c0` controla o switch `s1` por OpenFlow.
 - curl
 - ffmpeg, apenas se for gerar novamente o vídeo DASH
 
-O VLC não é necessário para reproduzir os resultados documentados nesta etapa. A validação registrada foi feita por acesso HTTP ao manifesto `manifest.mpd`.
+O VLC não é necessário: a QoE é medida pelo download de um segmento DASH com `curl -w` (tempo, tamanho, velocidade e código HTTP).
 
 Em Ubuntu, uma instalação típica é:
 
@@ -54,13 +67,28 @@ sudo apt install -y mininet openvswitch-switch python3 python3-pip iperf3 curl f
 pip3 install os-ken
 ```
 
-## Como executar
+## Demo automatizada (recomendado)
 
-Prepare as permissões dos scripts:
+A forma mais simples de reproduzir as três etapas é a demo automatizada, que usa a API Python do Mininet e salva as evidências em `resultados/demo_final/`:
 
 ```bash
+make clean
 make permissions
+make demo               # Etapas 1, 2 e 3 com controle SDN
+make show-demo-results  # exibe o resumo dos resultados
 ```
+
+Para incluir também a medição ao vivo do cenário sem controle da Etapa 3:
+
+```bash
+make demo-full
+```
+
+Detalhes em `scripts/README_DEMO_FINAL.md`.
+
+## Execução manual
+
+### Etapa 1 — ambiente base
 
 Terminal 1:
 
@@ -80,94 +108,68 @@ Dentro do CLI do Mininet, inicie o servidor DASH no `h1`:
 h1 bash scripts/start_dash_server.sh &
 ```
 
-Comando equivalente:
-
-```bash
-h1 bash -c "cd video/dash && python3 -m http.server 8000 --bind 10.0.0.1" &
-```
-
-Teste a conectividade:
+Valide conectividade, DASH e throughput:
 
 ```bash
 pingall
-```
-
-Teste o DASH por HTTP:
-
-```bash
 h2 curl -I http://10.0.0.1:8000/manifest.mpd
-h3 curl -I http://10.0.0.1:8000/manifest.mpd
-h4 curl -I http://10.0.0.1:8000/manifest.mpd
-```
-
-Teste o throughput:
-
-```bash
 h1 iperf3 -s -D
 h2 iperf3 -c 10.0.0.1 -t 10
-h3 iperf3 -c 10.0.0.1 -t 10
-h4 iperf3 -c 10.0.0.1 -t 10
 ```
 
-Para salvar automaticamente os resultados, mantenha o controlador e a topologia em execução e rode em um terceiro terminal:
+Para salvar automaticamente os resultados do baseline, com controlador e topologia ativos, rode em um terceiro terminal:
 
 ```bash
 make baseline
 ```
 
-Esse alvo usa `mnexec` para executar comandos nos hosts do Mininet e salva os arquivos em `resultados/`.
+### Etapa 2 — degradação e QoE
 
-## Resultados esperados
+Com o ambiente da Etapa 1 ativo, aplique as degradações na saída do servidor (`h1-eth0`) e meça a QoE. Exemplos:
 
-No cenário base espera-se:
+```bash
+# limitação de banda
+h1 bash -c 'tc qdisc add dev h1-eth0 root tbf rate 2mbit burst 32kbit latency 400ms'
 
-- `pingall` com `0% dropped`;
-- respostas `HTTP/1.0 200 OK` para o manifesto DASH `manifest.mpd`;
-- `Content-Type` do manifesto como `application/dash+xml`;
-- throughput estável nos testes `iperf3`;
-- ausência de degradação significativa.
+# atraso e jitter
+h1 bash -c 'tc qdisc add dev h1-eth0 root netem delay 100ms 30ms distribution normal'
 
-## Resultados obtidos
+# perda de pacotes
+h1 bash -c 'tc qdisc add dev h1-eth0 root netem loss 2%'
 
-Os resultados iniciais foram coletados no cenário base, sem aplicação de atraso, perda, jitter ou limitação artificial de banda.
+# medição de QoE (tempo de download de um segmento DASH)
+h2 bash scripts/measure_qoe_etapa3.sh resultados/etapa2/<cenario>
+```
 
-### Conectividade
+O buffering estimado é `max(0, tempo_de_download - 4)`, pois os segmentos DASH têm 4 segundos.
 
-O teste `pingall` apresentou:
+### Etapa 3 — controle via SDN
 
-- Perda: `0% dropped`
-- Resultado: `12/12 received` (12 pacotes recebidos de 12 enviados)
+Terminal 1 (controlador QoE):
 
-### Latência e perda
+```bash
+make controller-qoe
+```
 
-| Teste | Pacotes transmitidos | Pacotes recebidos | Perda | RTT min | RTT médio | RTT max | RTT mdev |
-|---|---:|---:|---:|---:|---:|---:|---:|
-| h1 -> h2 | 10 | 10 | 0% | 0.051 ms | 0.065 ms | 0.092 ms | 0.010 ms |
-| h2 -> h1 | 10 | 10 | 0% | 0.052 ms | 0.074 ms | 0.133 ms | 0.023 ms |
+Terminal 2 (topologia com gargalo):
 
-### Throughput
+```bash
+make topology-etapa3
+```
 
-| Fluxo | Intervalo sender | Sender | Intervalo receiver | Receiver | Retransmissões |
-|---|---:|---:|---:|---:|---:|
-| h2 -> h1 | 0.00-10.00 sec | 89.0 Mbits/sec | 0.00-10.01 sec | 88.4 Mbits/sec | 0 |
-| h3 -> h1 | 0.00-10.00 sec | 88.4 Mbits/sec | 0.00-10.02 sec | 87.9 Mbits/sec | 0 |
-| h4 -> h1 | 0.00-10.00 sec | 89.0 Mbits/sec | 0.00-10.02 sec | 88.5 Mbits/sec | 0 |
+No CLI do Mininet, inicie o servidor DASH, gere tráfego concorrente com `iperf3` UDP de `h1` para `h3`/`h4` e meça o download do segmento em `h2` com e sem o controlador QoE. Os logs de decisão do controlador comprovam a detecção e a mitigação.
 
-### Validação DASH
+## Resultados principais
 
-Os clientes `h2`, `h3` e `h4` acessaram o manifesto DASH `manifest.mpd` no servidor `h1` por HTTP.
-
-| Cliente | Código HTTP | Servidor | Content-Type | Content-Length | Last-Modified |
-|---|---|---|---|---:|---|
-| h2 | HTTP/1.0 200 OK | SimpleHTTP/0.6 Python/3.12.3 | application/dash+xml | 2201 | Tue, 05 May 2026 02:15:01 GMT |
-| h3 | HTTP/1.0 200 OK | SimpleHTTP/0.6 Python/3.12.3 | application/dash+xml | 2201 | Tue, 05 May 2026 02:15:01 GMT |
-| h4 | HTTP/1.0 200 OK | SimpleHTTP/0.6 Python/3.12.3 | application/dash+xml | 2201 | Tue, 05 May 2026 02:15:01 GMT |
+- **Etapa 1**: `pingall` com 0% de perda, RTT médio < 0,1 ms, throughput ~88 Mbit/s e manifesto DASH acessível com `HTTP 200`.
+- **Etapa 2**: o cenário combinado (banda 2 Mbit/s + atraso/jitter + perda 2% + tráfego concorrente) elevou o tempo de download do segmento de 0,07 s para 39,08 s, com buffering estimado de 35,08 s.
+- **Etapa 3**: com o controlador QoE, o tempo de download sob tráfego concorrente caiu de 61,17 s para 2,51 s (redução de ~95,9%), eliminando o buffering estimado.
 
 ## Organização do repositório
 
-- `controlador/`: controlador SDN L2 com aprendizado de MAC e OpenFlow 1.3.
-- `topologia/`: topologia Mininet com um servidor, três clientes e um switch.
-- `scripts/`: automação para iniciar controlador, topologia, servidor DASH, baseline e limpeza.
+- `controlador/`: controladores SDN (switch L2 e controlador QoE com mitigação dinâmica).
+- `topologia/`: topologias Mininet das Etapas 1/2 e da Etapa 3 (gargalo).
+- `scripts/`: automação (controlador, topologia, servidor DASH, baseline, medição de QoE, demo das três etapas e limpeza).
 - `video/`: vídeo de teste e segmentos DASH.
-- `resultados/`: medições iniciais de ping, iperf3 e validação HTTP do DASH.
-- `relatorio/`: relatório LaTeX da Etapa 1.
+- `resultados/`: evidências das medições (baseline, cenários da Etapa 2, Etapa 3 e demo final).
+- `relatorio/figuras/`: figuras usadas no relatório.
